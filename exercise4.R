@@ -1,13 +1,14 @@
 library(zoo)
+library(bfast)
 
 ## "c:\student\MODIS"
 setwd(c("c:/student/MODIS/"))
 getwd() ## to check what your working directory is.
 
-update.packages(ask=FALSE)
+#update.packages(ask=FALSE)
 
 ## we install the latest bfast package from the R-forge website
-install.packages("bfast", repos="http://R-Forge.R-project.org", dependencies=TRUE)
+#install.packages("bfast", repos="http://R-Forge.R-project.org", dependencies=TRUE)
 
 ## a function to create a regular "ts" (time series) object in R using time information (dt)
 timeser <- function(index,dt) {
@@ -28,20 +29,21 @@ sel <- function(y,crit){
   return(ts.sel)
 }
 
-fluxtower <- c("fn_nlloobos.txt")  
-filename <- paste("https://modis.ornl.gov/subset/C5_MOD13Q1/data/MOD13Q1.", fluxtower,sep="")
+#fluxtower <- c("fn_nlloobos.txt")  
+fluxtower2 <- c("fn_ruyaklar.txt")
+filename <- paste("https://modis.ornl.gov/subset/C5_MOD13Q1/data/MOD13Q1.", fluxtower2,sep="")
 
 ## now download the file only if the .csv file does not exist yet on your computer
 ## then read the csv file using the 'read.csv' function
 
-if(!file.exists(fluxtower)) {
-  download.file(filename,fluxtower)
-  modis <- read.csv(fluxtower, colClasses = "character") 
+if(!file.exists(fluxtower2)) {
+  download.file(filename,fluxtower2)
+  modis <- read.csv(fluxtower2, colClasses = "character") 
 } else {
-  modis <- read.csv(fluxtower, colClasses = "character") 
+  modis <- read.csv(fluxtower2, colClasses = "character") 
 }
 
-fluxtower <- c("fn_autumbar.txt")
+fluxtower2 <- c("fn_autumbar.txt")
 str(modis[1,1:7])
 
 names(modis)[1:8] # Each pixel has a separate name
@@ -92,5 +94,36 @@ lines(sel(ts.NDVI,ts.rel <= 1), col = "seagreen3", type = "p", pch=1, cex=1.5)
 lines(sel(ts.NDVI,ts.rel > 1), col = "red", type = "p", pch=1, cex=1.5)
 legend("bottomleft",c("pixels with a high reliablity","pixels with a low reliablity"), pch = c(1,1), cex = c(1,1), col = c("seagreen3", "red"))
 
+ts.clNDVI <- ts.NDVI
+ts.clNDVI[ts.rel > 1] <- NA  # delete data with reliability > 1
 
+plot(ts.NDVI, col='red')
+lines(ts.clNDVI, lwd=2, col='black')  
 
+ts.clNDVIfilled <- na.approx(ts.clNDVI)
+plot(ts.clNDVIfilled, ylim=c(0.1, 1))
+
+rdist <- 25/length(ts.clNDVIfilled)
+## ratio of distance between breaks (time steps) and length of the time series
+fit <- bfast(ts.clNDVIfilled, h=rdist,
+             season="harmonic", max.iter=1)
+plot(fit, main="")
+
+# Q12
+
+help(bfast)
+## for more info
+## try out the examples in the bfast help section!
+plot(harvest, ylab="NDVI") # MODIS 16-day cleaned and interpolated NDVI time series
+(rdist <- 10/length(harvest))
+# ratio of distance between breaks (time steps) and length of the time series
+fit <- bfast(harvest, h=rdist, season="harmonic", max.iter=1, breaks=2)
+plot(fit)
+## plot anova and slope of the trend identified trend segments
+plot(fit, main="")
+
+mon <- bfastmonitor(ts.clNDVIfilled,
+                    start = c(2010, 23),
+                    formula = response ~ trend,
+                    history = c("ROC"))
+plot(mon, main="bfastmonitor results")
