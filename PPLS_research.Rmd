@@ -1,0 +1,43 @@
+---
+title: "PPLS applied to soil property detection"
+author: "Alex Levering"
+date: "April 21, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Set-up & data exploration
+
+```{r}
+# Remember to set working directory to script location
+
+# Libraries
+library(ppls)
+
+# Load data
+soilData <- read.csv('data/soil_spectra_NL.csv')
+
+# Function to quickly plot histogram of variables of dataset
+analyseParameter <- function(variableToInspect){
+  variableToDisplay <- as.numeric(unlist(soilData[variableToInspect]))
+  hist(variableToDisplay, breaks = 20, main=paste("Distribution of",variable), xlab = variable)
+  # plot(variableToDisplay, main=paste("Distribution of",variable), xlab = variable)
+}
+```
+
+```{r}
+soilPropertyToAnalyse <- 'Pt'
+analyseParameter(soilPropertyToAnalyse)
+X <- as.matrix(soilData[,19:700]) # Input variables
+y <- as.numeric(soilData[soilPropertyToAnalyse]) # Response variable
+```
+
+## PPLS
+
+```{r}
+pls.object <- penalized.pls.cv(X, y, ncomp=10, kernel=TRUE) # PLS without penalization
+```
+
